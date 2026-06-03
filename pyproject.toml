@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-tools"
+version = "0.1.0"
+description = "PDF batch processing CLI"
+requires-python = ">=3.9"
+dependencies = [
+    "pypdf>=4.0",
+    "pikepdf>=8.0",
+    "Pillow>=10.0",
+    "rich>=13.0",
+    "click>=8.0",
+]
+
+[project.scripts]
+pdf-tools = "pdf_tools.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pdf_tools*"]
