@@ -6,11 +6,12 @@ A command-line toolkit for batch PDF processing.
 
 - Python 3.9+
 
-## Installation
+## Setup
 
 ```bash
+python3 -m venv .venv-pdf
+source .venv-pdf/bin/activate
 pip install -r requirements.txt
-pip install -e .
 ```
 
 ## Commands
@@ -26,30 +27,15 @@ pip install -e .
 ## Usage
 
 ```bash
-# Normalize page sizes to A4
-pdf-tools normalize-page-size scan1.pdf scan2.pdf
-
-# Convert images to PDF
-pdf-tools image-to-pdf photo.jpg diagram.png
-
-# Merge all PDFs in the current folder alphabetically
-pdf-tools concatenate *.pdf
-
-# Compress a PDF (light or aggressive)
-pdf-tools compress report.pdf --level aggressive
-
-# Strip all images, replace with grey boxes
-pdf-tools remove-images heavy.pdf
+python3 pdf_tools normalize-page-size scan1.pdf scan2.pdf
+python3 pdf_tools image-to-pdf photo.jpg diagram.png
+python3 pdf_tools concatenate *.pdf
+python3 pdf_tools compress report.pdf --level aggressive
+python3 pdf_tools remove-images heavy.pdf
 ```
 
 ### Options
 
 `--overwrite` — overwrite existing output files instead of adding a numeric suffix (`_1`, `_2`, …).
 
-All output files are written to a `pdf-tools-output/` subfolder next to each input file.
-
-## Running without installation
-
-```bash
-python3 pdf-tools
-```
+All output files are written to an `output-pdf-tools/` subfolder next to each input file.

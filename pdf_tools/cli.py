@@ -36,7 +36,7 @@ def _resolve(paths: tuple[str, ...], glob_ok: bool = True) -> list[Path]:
 @click.version_option("0.1.0", prog_name="pdf-tools")
 def cli() -> None:
     """PDF batch processing toolkit.\n
-    Output files are written to a pdf-tools-output/ subfolder
+    Output files are written to an output-pdf-tools/ subfolder
     next to each input file.
     """
 

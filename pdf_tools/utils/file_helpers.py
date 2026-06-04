@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-OUTPUT_SUBDIR = "pdf-tools-output"
+OUTPUT_SUBDIR = "output-pdf-tools"
 
 
 def get_output_dir(reference_path: Path) -> Path:
