@@ -39,3 +39,7 @@ python3 pdf_tools remove-images heavy.pdf
 `--overwrite` — overwrite existing output files instead of adding a numeric suffix (`_1`, `_2`, …).
 
 All output files are written to an `output-pdf-tools/` subfolder next to each input file.
+```bash
+python3 pdf_tools batch invoices/ reports/ archive/
+python3 pdf_tools batch invoices/ reports/ --compress   # also compress output
+```

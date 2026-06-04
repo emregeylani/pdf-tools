@@ -1,2 +1,0 @@
-[console_scripts]
-pdf-tools = pdf_tools.cli:cli

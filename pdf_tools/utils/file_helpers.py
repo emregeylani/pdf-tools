@@ -8,22 +8,31 @@ OUTPUT_SUBDIR = "output-pdf-tools"
 
 
 def get_output_dir(reference_path: Path) -> Path:
-    """Return (and create if needed) the output-pdf-tools dir next to reference_path."""
-    out_dir = reference_path.parent / OUTPUT_SUBDIR
+    """
+    Return (and create if needed) the output-pdf-tools dir for a given input file.
+
+    If the input file is already inside an output-pdf-tools/ folder, reuse that
+    same folder instead of nesting a new one inside it.
+    """
+    resolved = reference_path.resolve()
+    # Walk up: if any parent is named OUTPUT_SUBDIR, use it directly
+    for parent in resolved.parents:
+        if parent.name == OUTPUT_SUBDIR:
+            return parent
+    out_dir = resolved.parent / OUTPUT_SUBDIR
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
 
 
 def safe_output_path(output_dir: Path, filename: str, overwrite: bool, operation: str = "") -> Path:
     """
-    Return a safe output Path, embedding the operation name before the extension.
+    Return a safe output Path, appending the operation name to whatever stem the
+    input file already has — so chained operations accumulate naturally:
 
-    Examples (operation="compressed"):
-      sample.pdf                        -> output-pdf-tools/sample-compressed.pdf
-      sample-compressed.pdf exists, overwrite=False
-                                        -> output-pdf-tools/sample-compressed_1.pdf
-
-    If overwrite=True the collision counter is skipped.
+      sample.pdf                           -> sample-compressed.pdf
+      sample-compressed.pdf                -> sample-compressed-normalized.pdf
+      sample-compressed-normalized.pdf exists, overwrite=False
+                                           -> sample-compressed-normalized_1.pdf
     """
     src = Path(filename)
     op_tag = f"-{operation}" if operation else ""

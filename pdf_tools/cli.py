@@ -1,9 +1,53 @@
 """pdf-tools CLI — entry point."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
+
+# ── Custom --help ─────────────────────────────────────────────────────────────
+
+FULL_HELP = """\
+pdf-tools  —  PDF batch processing toolkit
+===========================================
+
+USAGE
+  python3 pdf_tools <command> [OPTIONS] [FILES/FOLDERS...]
+  python3 pdf_tools <command> --help     for full details on any command
+
+COMMANDS
+  normalize-page-size   Resize pages to A4, preserving orientation
+  image-to-pdf          Convert PNG/JPG/JPEG/BMP images to PDF
+  concatenate           Merge PDFs alphabetically into one file
+  compress              Shrink PDF size  [--level light|aggressive]
+  remove-images         Replace images with grey placeholders
+  batch                 Per-folder pipeline: images->PDF, merge, normalize, compress
+                        [--no-normalize] [--no-compress]
+
+OUTPUT
+  Results go to output-pdf-tools/ next to each input.
+  Filenames embed the operation: sample-compressed.pdf, sample-compressed-normalized.pdf
+
+OPTIONS
+  --overwrite   Overwrite existing files (default: add _1, _2, ...)
+  --help        Show this message and exit
+  --version     Show version and exit
+"""
+
+
+class FullHelpGroup(click.Group):
+    """Custom Group that prints the full help page for --help / no args."""
+
+    def get_help(self, ctx: click.Context) -> str:  # type: ignore[override]
+        return FULL_HELP
+
+    def invoke(self, ctx: click.Context) -> None:
+        if not ctx.protected_args and not ctx.args:
+            click.echo(FULL_HELP)
+            ctx.exit()
+        super().invoke(ctx)
+
 
 # ── Shared options ────────────────────────────────────────────────────────────
 
@@ -13,15 +57,13 @@ _overwrite = click.option(
 )
 
 
-def _resolve(paths: tuple[str, ...], glob_ok: bool = True) -> list[Path]:
-    """Expand globs / resolve paths, return sorted list."""
+def _resolve(paths: tuple[str, ...]) -> list[Path]:
     resolved: list[Path] = []
     for p in paths:
         path = Path(p)
         if path.exists():
             resolved.append(path)
         else:
-            # Try glob expansion relative to cwd
             matches = list(Path(".").glob(p))
             if matches:
                 resolved.extend(matches)
@@ -32,19 +74,16 @@ def _resolve(paths: tuple[str, ...], glob_ok: bool = True) -> list[Path]:
 
 # ── CLI group ─────────────────────────────────────────────────────────────────
 
-@click.group()
+@click.group(cls=FullHelpGroup)
 @click.version_option("0.1.0", prog_name="pdf-tools")
 def cli() -> None:
-    """PDF batch processing toolkit.\n
-    Output files are written to an output-pdf-tools/ subfolder
-    next to each input file.
-    """
+    pass
 
 
 # ── normalize-page-size ───────────────────────────────────────────────────────
 
 @cli.command("normalize-page-size")
-@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE …]")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
 @_overwrite
 def cmd_normalize(files: tuple[str, ...], overwrite: bool) -> None:
     """Resize all pages to A4, preserving landscape/portrait orientation."""
@@ -58,7 +97,7 @@ def cmd_normalize(files: tuple[str, ...], overwrite: bool) -> None:
 # ── image-to-pdf ──────────────────────────────────────────────────────────────
 
 @cli.command("image-to-pdf")
-@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE …]")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
 @_overwrite
 def cmd_image_to_pdf(files: tuple[str, ...], overwrite: bool) -> None:
     """Convert PNG/JPG/JPEG/BMP images to same-named PDF files."""
@@ -72,10 +111,10 @@ def cmd_image_to_pdf(files: tuple[str, ...], overwrite: bool) -> None:
 # ── concatenate ───────────────────────────────────────────────────────────────
 
 @cli.command("concatenate")
-@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE …]")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
 @_overwrite
 def cmd_concatenate(files: tuple[str, ...], overwrite: bool) -> None:
-    """Merge PDFs alphabetically into concatenated-DATE.pdf."""
+    """Merge multiple PDFs alphabetically into a single file."""
     from pdf_tools.concatenate import concatenate
     paths = _resolve(files)
     if not paths:
@@ -86,14 +125,14 @@ def cmd_concatenate(files: tuple[str, ...], overwrite: bool) -> None:
 # ── compress ──────────────────────────────────────────────────────────────────
 
 @cli.command("compress")
-@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE …]")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
 @click.option(
     "--level", type=click.Choice(["light", "aggressive"]), default="light", show_default=True,
-    help="Compression preset: light (fast) or aggressive (max size reduction).",
+    help="light (default) or aggressive (recompress Flate streams).",
 )
 @_overwrite
 def cmd_compress(files: tuple[str, ...], level: str, overwrite: bool) -> None:
-    """Reduce PDF size via stream compression and object optimisation."""
+    """Reduce PDF file size via stream and object-stream optimisation."""
     from pdf_tools.compress import compress
     paths = _resolve(files)
     if not paths:
@@ -104,7 +143,7 @@ def cmd_compress(files: tuple[str, ...], level: str, overwrite: bool) -> None:
 # ── remove-images ─────────────────────────────────────────────────────────────
 
 @cli.command("remove-images")
-@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE …]")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
 @_overwrite
 def cmd_remove_images(files: tuple[str, ...], overwrite: bool) -> None:
     """Replace all raster images with same-size grey placeholder boxes."""
@@ -113,6 +152,26 @@ def cmd_remove_images(files: tuple[str, ...], overwrite: bool) -> None:
     if not paths:
         raise click.UsageError("No valid PDF files provided.")
     remove_images(paths, overwrite)
+
+
+# ── batch ─────────────────────────────────────────────────────────────────────
+
+@cli.command("batch")
+@click.argument("folders", nargs=-1, required=True, metavar="FOLDER [FOLDER ...]")
+@click.option(
+    "--no-normalize", "skip_normalize", is_flag=True, default=False,
+    help="Skip A4 normalization step (normalization is ON by default).",
+)
+@click.option(
+    "--no-compress", "skip_compress", is_flag=True, default=False,
+    help="Skip compression step (compression is ON by default).",
+)
+@_overwrite
+def cmd_batch(folders: tuple[str, ...], skip_normalize: bool, skip_compress: bool, overwrite: bool) -> None:
+    """Per-folder pipeline: convert images + normalize + merge [+ compress]."""
+    from pdf_tools.batch import batch
+    folder_paths = [Path(f) for f in folders]
+    batch(folder_paths, overwrite=overwrite, normalize=not skip_normalize, compress=not skip_compress)
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
