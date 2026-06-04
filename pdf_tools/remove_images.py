@@ -74,7 +74,7 @@ def remove_images(input_paths: list[Path], overwrite: bool) -> None:
             total_replaced += replaced
 
         out_dir = get_output_dir(src)
-        out_path = safe_output_path(out_dir, src.name, overwrite)
+        out_path = safe_output_path(out_dir, src.name, overwrite, operation="remove-images")
 
         try:
             pdf.save(

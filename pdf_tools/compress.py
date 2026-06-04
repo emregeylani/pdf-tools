@@ -40,7 +40,7 @@ def compress(input_paths: list[Path], overwrite: bool, level: str = "light") -> 
             continue
 
         out_dir = get_output_dir(src)
-        out_path = safe_output_path(out_dir, src.name, overwrite)
+        out_path = safe_output_path(out_dir, src.name, overwrite, operation="compressed")
 
         try:
             pdf.save(str(out_path), **preset)

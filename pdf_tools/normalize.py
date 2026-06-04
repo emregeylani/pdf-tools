@@ -53,7 +53,7 @@ def normalize(input_paths: list[Path], overwrite: bool) -> None:
             writer.add_page(page)
 
         out_dir = get_output_dir(src)
-        out_path = safe_output_path(out_dir, src.name, overwrite)
+        out_path = safe_output_path(out_dir, src.name, overwrite, operation="normalized")
 
         with open(out_path, "wb") as fh:
             writer.write(fh)
