@@ -3,3 +3,5 @@ pikepdf>=8.0
 Pillow>=10.0
 rich>=13.0
 click>=8.0
+pdf2image>=1.17
+reportlab>=4.0

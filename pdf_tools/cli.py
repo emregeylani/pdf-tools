@@ -24,6 +24,8 @@ COMMANDS
   remove-images         Replace images with grey placeholders
   batch                 Per-folder pipeline: images->PDF, merge, normalize, compress
                         [--no-normalize] [--no-compress]
+  split                 Extract page ranges into a single output PDF  [--pages 1-3,5,8]
+  ocr                   Add invisible text layer to image-only PDFs  [--lang tr en]
 
 OUTPUT
   Results go to output-pdf-tools/ next to each input.
@@ -172,6 +174,49 @@ def cmd_batch(folders: tuple[str, ...], skip_normalize: bool, skip_compress: boo
     from pdf_tools.batch import batch
     folder_paths = [Path(f) for f in folders]
     batch(folder_paths, overwrite=overwrite, normalize=not skip_normalize, compress=not skip_compress)
+
+
+# ── split ─────────────────────────────────────────────────────────────────────
+
+@cli.command("split")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
+@click.option(
+    "--pages", "pages_spec", required=True, metavar="SPEC",
+    help="Pages to extract, e.g. '1-3,5,8'. Ranges are inclusive. "
+         "Invalid page numbers abort immediately.",
+)
+@_overwrite
+def cmd_split(files: tuple[str, ...], pages_spec: str, overwrite: bool) -> None:
+    """Extract page ranges from PDF(s) into a single output file per input."""
+    from pdf_tools.split import split
+    paths = _resolve(files)
+    if not paths:
+        raise click.UsageError("No valid PDF files provided.")
+    split(paths, pages_spec, overwrite)
+
+
+# ── ocr ───────────────────────────────────────────────────────────────────────
+
+@cli.command("ocr")
+@click.argument("files", nargs=-1, required=True, metavar="FILE [FILE ...]")
+@click.option(
+    "--lang", "langs", multiple=True, default=["tr", "en"], show_default=True,
+    metavar="LANG",
+    help="OCR language codes (repeatable). Default: tr en. "
+         "First run downloads EasyOCR models (~100–200 MB).",
+)
+@_overwrite
+def cmd_ocr(files: tuple[str, ...], langs: tuple[str, ...], overwrite: bool) -> None:
+    """Add a searchable invisible text layer to image-only PDF pages.
+
+    Uses EasyOCR + pdf2image (requires poppler: apt install poppler-utils).
+    Skips PDFs that already contain extractable text.
+    """
+    from pdf_tools.ocr import ocr
+    paths = _resolve(files)
+    if not paths:
+        raise click.UsageError("No valid PDF files provided.")
+    ocr(paths, list(langs), overwrite)
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
